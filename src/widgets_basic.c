@@ -1,6 +1,7 @@
 #include "internal.h"
 
-struct label {
+struct label
+{
     struct pg_widget base;
     char *text;
     int font;
@@ -14,16 +15,19 @@ static int line_count_width(int font, const char *s, int *lines)
 {
     int best = 0, n = 1;
     char buf[512];
-    while (s && *s) {
+    while (s && *s)
+    {
         int k = 0;
-        while (s[k] && s[k] != '\n' && k < (int)sizeof(buf) - 1) {
+        while (s[k] && s[k] != '\n' && k < (int)sizeof(buf) - 1)
+        {
             buf[k] = s[k];
             k++;
         }
         buf[k] = 0;
         best = pg__max(best, pgc_text_w(font, buf));
         s += k;
-        if (*s == '\n') {
+        if (*s == '\n')
+        {
             s++;
             n++;
         }
@@ -52,7 +56,8 @@ static void label_measure(struct pg_widget *w, int *width, int *height)
 static int label_hfw(struct pg_widget *w, int width)
 {
     struct label *l = (struct label *)w;
-    if (!l->wrap) {
+    if (!l->wrap)
+    {
         int mw, mh;
         label_measure(w, &mw, &mh);
         return mh;
@@ -67,7 +72,8 @@ static void label_draw(struct pg_widget *w, struct pg_canvas *c)
     if (!pg_widget_is_enabled(w))
         color = pgc_mix(color, pg_theme()->bg, 110);
     struct pg_rect r = w->rect;
-    if (l->wrap) {
+    if (l->wrap)
+    {
         pgc_text_wrap(c, l->font, r.x, r.y, r.w, l->text, color);
         return;
     }
@@ -77,9 +83,11 @@ static void label_draw(struct pg_widget *w, struct pg_canvas *c)
     int y = r.y + (r.h - (lines * lh - 4)) / 2;
     const char *s = l->text;
     char buf[512];
-    while (s) {
+    while (s)
+    {
         int k = 0;
-        while (s[k] && s[k] != '\n' && k < (int)sizeof(buf) - 1) {
+        while (s[k] && s[k] != '\n' && k < (int)sizeof(buf) - 1)
+        {
             buf[k] = s[k];
             k++;
         }
@@ -198,7 +206,8 @@ void pg_label_set_text_align(struct pg_widget *w, enum pg_align align)
     pg_widget_queue_draw(w);
 }
 
-struct icon {
+struct icon
+{
     struct pg_widget base;
     int icon;
     int size;
@@ -219,7 +228,8 @@ static void icon_draw(struct pg_widget *w, struct pg_canvas *c)
 {
     struct icon *i = (struct icon *)w;
     uint32_t color = pg_color(i->color);
-    if (i->tile) {
+    if (i->tile)
+    {
         int s = i->tile_size, px = pgc_icon_px(i->size);
         int x = w->rect.x + (w->rect.w - s) / 2, y = w->rect.y + (w->rect.h - s) / 2;
         pgc_rrect(c, x, y, s, s, s / 3, color, pg_theme()->light ? 40 : 46);
@@ -305,14 +315,16 @@ static const struct pg_widget_class spacer_class = {
 struct pg_widget *pg_spacer_new(void)
 {
     struct pg_widget *w = pg_widget_new(&spacer_class);
-    if (w) {
+    if (w)
+    {
         w->hexpand = true;
         w->vexpand = true;
     }
     return w;
 }
 
-struct badge {
+struct badge
+{
     struct pg_widget base;
     char *text;
     uint32_t color;
@@ -370,7 +382,8 @@ void pg_badge_set(struct pg_widget *w, const char *text, uint32_t color)
     pg_widget_queue_draw(w);
 }
 
-struct kv {
+struct kv
+{
     struct pg_widget base;
     char *key;
     char *value;
@@ -434,7 +447,8 @@ void pg_kv_set_value(struct pg_widget *w, const char *value)
     pg_widget_queue_draw(w);
 }
 
-struct signal_bars {
+struct signal_bars
+{
     struct pg_widget base;
     int rssi;
 };
@@ -449,7 +463,10 @@ static void signal_measure(struct pg_widget *w, int *width, int *height)
 static void signal_draw(struct pg_widget *w, struct pg_canvas *c)
 {
     int rssi = ((struct signal_bars *)w)->rssi;
-    int level = rssi >= -55 ? 4 : rssi >= -65 ? 3 : rssi >= -75 ? 2 : rssi >= -85 ? 1 : 0;
+    int level = rssi >= -55 ? 4 : rssi >= -65 ? 3
+                              : rssi >= -75   ? 2
+                              : rssi >= -85   ? 1
+                                              : 0;
     static const int ids[5] = {PGI_WIFI_STRENGTH_OUTLINE, PGI_WIFI_STRENGTH_1, PGI_WIFI_STRENGTH_2,
                                PGI_WIFI_STRENGTH_3, PGI_WIFI_STRENGTH_4};
     int px = pgc_icon_px(PG_ICON_S);
@@ -480,7 +497,8 @@ void pg_signal_set(struct pg_widget *w, int rssi)
     pg_widget_queue_draw(w);
 }
 
-struct progress {
+struct progress
+{
     struct pg_widget base;
     uint32_t permille;
     uint32_t color;
@@ -541,7 +559,8 @@ void pg_progress_set_color(struct pg_widget *w, uint32_t color)
     pg_widget_queue_draw(w);
 }
 
-struct ring {
+struct ring
+{
     struct pg_widget base;
     int radius, thick;
     uint32_t permille;
@@ -562,7 +581,8 @@ static void ring_draw(struct pg_widget *w, struct pg_canvas *c)
     const struct pg_theme *t = pg_theme();
     int cx = w->rect.x + w->rect.w / 2, cy = w->rect.y + w->rect.h / 2;
     pgc_ring(c, cx, cy, r->radius, r->thick, r->permille, pg_color(r->color), t->surface3);
-    if (r->text && r->text[0]) {
+    if (r->text && r->text[0])
+    {
         int font = r->radius >= 40 ? PGF_HEAD : PGF_MEDIUM;
         pgc_text_center(c, font, w->rect.x, cy - pgc_font_h(font) / 2, w->rect.w, r->text, t->text);
     }
@@ -618,7 +638,8 @@ void pg_ring_set_text(struct pg_widget *w, const char *text)
     pg_widget_queue_draw(w);
 }
 
-struct image {
+struct image
+{
     struct pg_widget base;
     uint32_t *px;
     int w, h;
@@ -672,9 +693,11 @@ void pg_image_set(struct pg_widget *w, const uint32_t *pixels, int width, int he
     free(i->px);
     i->px = NULL;
     i->w = i->h = 0;
-    if (pixels && width > 0 && height > 0) {
+    if (pixels && width > 0 && height > 0)
+    {
         i->px = malloc((size_t)width * (size_t)height * 4);
-        if (i->px) {
+        if (i->px)
+        {
             memcpy(i->px, pixels, (size_t)width * (size_t)height * 4);
             i->w = width;
             i->h = height;
@@ -684,7 +707,8 @@ void pg_image_set(struct pg_widget *w, const uint32_t *pixels, int width, int he
     pg_widget_queue_draw(w);
 }
 
-struct drawing {
+struct drawing
+{
     struct pg_widget base;
     int w, h;
     pg_draw_fn draw;

@@ -66,6 +66,19 @@ const struct pg_theme *pg_theme(void)
     return &current;
 }
 
+bool pg_theme_preview(const char *name, struct pg_theme *out)
+{
+    for (unsigned i = 0; name && out && i < PRESET_COUNT; i++)
+    {
+        if (strcmp(name, presets[i].name) == 0)
+        {
+            derive(out, &presets[i]);
+            return true;
+        }
+    }
+    return false;
+}
+
 unsigned pg_theme_count(void)
 {
     return PRESET_COUNT;

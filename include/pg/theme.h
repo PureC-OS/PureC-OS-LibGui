@@ -46,6 +46,7 @@ struct pg_theme {
 
 const struct pg_theme *pg_theme(void);
 bool pg_theme_set(const char *name);
+bool pg_theme_preview(const char *name, struct pg_theme *out);
 const char *pg_theme_system_name(void);
 void pg_theme_reload(void);
 unsigned pg_theme_count(void);

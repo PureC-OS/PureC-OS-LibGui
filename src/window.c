@@ -380,18 +380,17 @@ static void resize_buffer(struct pg_window *win, int width, int height)
 {
     if (!win->vb || (width == win->width && height == win->height))
         return;
-    uint32_t *back = calloc((size_t)width * (size_t)height, 4);
+    if (vb_window_resize(win->vb, width, height) != 0)
+        return;
+    int nw = vb_window_width(win->vb), nh = vb_window_height(win->vb);
+    uint32_t *back = calloc((size_t)nw * (size_t)nh, 4);
     if (!back)
         return;
-    if (vb_window_resize(win->vb, width, height) != 0)
-    {
-        free(back);
-        return;
-    }
     free(win->back);
     win->back = back;
-    win->width = vb_window_width(win->vb);
-    win->height = vb_window_height(win->vb);
+    win->width = nw;
+    win->height = nh;
+    win->dirty_any = false;
     pgc_init(&win->canvas, win->back, win->width, win->height);
     win->layout_needed = true;
     pg_window_queue_draw(win);
@@ -670,6 +669,11 @@ void pg_window_flush(struct pg_window *win)
     struct pg_canvas *c = &win->canvas;
     struct pg_rect d = win->dirty;
     win->dirty_any = false;
+    int x0 = pg__max(d.x, 0), y0 = pg__max(d.y, 0);
+    int x1 = pg__min(d.x + d.w, win->width), y1 = pg__min(d.y + d.h, win->height);
+    if (x1 <= x0 || y1 <= y0)
+        return;
+    d = (struct pg_rect){x0, y0, x1 - x0, y1 - y0};
     pgc_clip(c, d.x, d.y, d.w, d.h);
     const struct pg_theme *t = pg_theme();
     struct pg_rect content = pg_window_content(win);

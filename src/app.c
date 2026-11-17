@@ -30,11 +30,12 @@ static struct {
     struct pg_timer *timers;
     struct pg_watch *watches;
     uint32_t theme_timer;
+    bool hold;
 } app;
 
 const char *pg_version(void)
 {
-    return "2.0.0";
+    return "2.1.0";
 }
 
 char *pg__strdup(const char *s)
@@ -100,6 +101,11 @@ void pg_shutdown(void)
     }
     vb_disconnect();
     app.ready = false;
+}
+
+void pg_hold(bool hold)
+{
+    app.hold = hold;
 }
 
 bool pg_running(void)
@@ -258,7 +264,7 @@ int pg_run(void)
         run_timers();
         pg__flush_all();
         pg__reap();
-        if (!app.running || !pg__have_windows())
+        if (!app.running || (!app.hold && !pg__have_windows()))
             break;
         struct pollfd fds[32];
         struct pg_watch *map[32];

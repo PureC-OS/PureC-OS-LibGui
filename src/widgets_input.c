@@ -1044,6 +1044,7 @@ void pg_entry_set_text(struct pg_widget *w, const char *text)
         return;
     int n = text ? (int)strlen(text) : 0;
     n = pg__min(n, e->cap);
+    memset(e->buf, 0, (size_t)e->cap + 1);
     memcpy(e->buf, text ? text : "", (size_t)n);
     e->buf[n] = 0;
     e->len = n;

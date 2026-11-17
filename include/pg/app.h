@@ -3,7 +3,7 @@
 #include <stdint.h>
 
 #define PG_VERSION_MAJOR 2
-#define PG_VERSION_MINOR 0
+#define PG_VERSION_MINOR 1
 #define PG_VERSION_PATCH 0
 
 #define PG_FD_READ 1u
@@ -18,6 +18,7 @@ int pg_run(void);
 void pg_quit(int code);
 void pg_shutdown(void);
 bool pg_running(void);
+void pg_hold(bool hold);
 
 uint64_t pg_time_ms(void);
 uint32_t pg_timer_add(uint32_t ms, pg_timer_fn fn, void *data);

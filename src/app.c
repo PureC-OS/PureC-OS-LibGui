@@ -86,9 +86,10 @@ void pg_shutdown(void)
 {
     if (!app.ready)
         return;
-    while (pg__windows())
-        pg_window_destroy(pg__windows());
-    pg__reap();
+    for (struct pg_window *w = pg__windows(); w; w = pg__windows()) {
+        pg_window_destroy(w);
+        pg__reap();
+    }
     while (app.timers) {
         struct pg_timer *t = app.timers;
         app.timers = t->next;

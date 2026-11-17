@@ -18,11 +18,10 @@ CFLAGS := $(CPPFLAGS) -I$(ROOT_DIR)/src/libc/include/hosted -I$(CURDIR)/include 
 SOURCES := $(wildcard src/*.c)
 OBJECTS := $(SOURCES:%.c=$(OBJ)/%.o)
 LIBPG := $(OUT)/libpg.a
-GALLERY := $(OUT)/pg-gallery
 HEADERS := $(wildcard include/pg/*.h)
 
-.PHONY: all clean package host-test
-all: $(LIBPG) $(GALLERY)
+.PHONY: all clean package
+all: $(LIBPG)
 
 $(OBJ)/%.o: %.c
 	@mkdir -p $(@D)
@@ -32,9 +31,6 @@ $(LIBPG): $(OBJECTS)
 	@mkdir -p $(@D)
 	rm -f $@
 	$(AR) rcs $@ $^
-
-$(GALLERY): $(OBJ)/demo/pg-gallery.o $(LIBPG) $(LIBVB) $(CRT0) $(LIBPUREC) $(LINKER_SCRIPT)
-	$(LD) -T $(LINKER_SCRIPT) -o $@ $(CRT0) $(OBJ)/demo/pg-gallery.o $(LIBPG) $(LIBVB) $(LIBPUREC)
 
 $(LIBVB):
 	$(MAKE) -C $(VB_DIR) ROOT_DIR=$(ROOT_DIR)
@@ -51,18 +47,9 @@ package: all
 		--desc "PureGUI toolkit: widgets, layout and windows on top of videod" -o $(OUT) \
 		--depend "video-backend>=1.1.0" \
 		--file usr/lib/libpg.a=$(LIBPG) \
-		--file usr/bin/pg-gallery=$(GALLERY) \
 		$(foreach h,$(HEADERS),--file usr/include/pg/$(notdir $(h))=$(CURDIR)/$(h))
 	if [ -f "$(SIGN_KEY)" ]; then python3 $(ROOT_DIR)/mk/pkg/pkgsign.py sign $(SIGN_KEY) $(PKG_FILE) $(PKG_FILE).sig; fi
 	@ls -l $(OUT)/libgui-*
-
-HOST_OUT := $(OUT)/host
-HOST_CFLAGS := -O1 -g -Wall -Wextra -Iinclude -Itests -I$(VB_DIR)/include -fsanitize=address,undefined
-
-host-test:
-	@mkdir -p $(HOST_OUT)
-	gcc $(HOST_CFLAGS) -o $(HOST_OUT)/pg-test $(SOURCES) tests/fake_vb.c tests/pg_test.c -lm
-	cd $(HOST_OUT) && ./pg-test
 
 clean:
 	rm -rf $(OUT)

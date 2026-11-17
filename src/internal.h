@@ -20,6 +20,7 @@ struct pg_window {
     bool has_background;
     uint32_t background;
     struct pg_canvas canvas;
+    uint32_t *back;
     struct pg_rect dirty;
     bool dirty_any;
     bool layout_needed;

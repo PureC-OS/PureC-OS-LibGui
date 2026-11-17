@@ -1,0 +1,22 @@
+name: Feature request
+description: A new widget, layout option or API in libgui
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What do you want to build with it
+    validations:
+      required: true
+  - type: textarea
+    id: api
+    attributes:
+      label: Proposed API or behavior
+      placeholder: struct pg_widget *pg_spinner_new(void); ...
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Fits libgui
+      options:
+        - label: Works with PureC libc and videod only, no other libraries
+          required: true

@@ -1,0 +1,34 @@
+name: Bug report
+description: Something in libgui draws or behaves wrong
+labels: ["bug"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: libgui version and program
+      placeholder: libgui 2.2.0, settings 2.0.1
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: Open Settings, move the mouse over the sidebar...
+    validations:
+      required: true
+  - type: textarea
+    id: screen
+    attributes:
+      label: Screenshot or log
+      description: A screenshot of the window, journalctl output for a crash (rip/cr2)
+  - type: input
+    id: env
+    attributes:
+      label: Where
+      placeholder: VirtualBox VMSVGA 1920x1080 / real hardware

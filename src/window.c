@@ -192,7 +192,14 @@ static struct pg_window *create(const char *title, int x, int y, int width, int 
     }
     win->width = vb_window_width(win->vb);
     win->height = vb_window_height(win->vb);
-    pgc_init(&win->canvas, vb_window_pixels(win->vb), win->width, win->height);
+    win->back = calloc((size_t)win->width * (size_t)win->height, 4);
+    if (!win->back)
+    {
+        vb_window_destroy(win->vb);
+        free(win);
+        return NULL;
+    }
+    pgc_init(&win->canvas, win->back, win->width, win->height);
     win->layout_needed = true;
     win->cursor = VB_CURSOR_ARROW;
     pg_window_queue_draw(win);
@@ -291,6 +298,7 @@ void pg__reap(void)
             w->child = NULL;
             pg_widget_destroy(c);
         }
+        free(w->back);
         free(w);
     }
 }
@@ -372,11 +380,19 @@ static void resize_buffer(struct pg_window *win, int width, int height)
 {
     if (!win->vb || (width == win->width && height == win->height))
         return;
-    if (vb_window_resize(win->vb, width, height) != 0)
+    uint32_t *back = calloc((size_t)width * (size_t)height, 4);
+    if (!back)
         return;
+    if (vb_window_resize(win->vb, width, height) != 0)
+    {
+        free(back);
+        return;
+    }
+    free(win->back);
+    win->back = back;
     win->width = vb_window_width(win->vb);
     win->height = vb_window_height(win->vb);
-    pgc_init(&win->canvas, vb_window_pixels(win->vb), win->width, win->height);
+    pgc_init(&win->canvas, win->back, win->width, win->height);
     win->layout_needed = true;
     pg_window_queue_draw(win);
 }
@@ -679,6 +695,10 @@ void pg_window_flush(struct pg_window *win)
         pgc_fill(c, win->width - 1, 0, 1, win->height, t->border);
     }
     pgc_unclip(c);
+    uint32_t *shared = vb_window_pixels(win->vb);
+    for (int y = d.y; y < d.y + d.h; y++)
+        memcpy(shared + (size_t)y * (size_t)win->width + d.x, win->back + (size_t)y * (size_t)win->width + d.x,
+               (size_t)d.w * 4);
     vb_window_damage(win->vb, d.x, d.y, d.w, d.h);
 }
 

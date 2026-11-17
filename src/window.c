@@ -4,7 +4,13 @@
 #define DOUBLE_CLICK_MS 400
 #define BUTTON_W 46
 
-enum { TB_NONE = 0, TB_MIN, TB_MAX, TB_CLOSE };
+enum
+{
+    TB_NONE = 0,
+    TB_MIN,
+    TB_MAX,
+    TB_CLOSE
+};
 
 static struct pg_window *windows;
 
@@ -31,7 +37,8 @@ bool pg__have_windows(void)
 
 void pg__relayout_all(void)
 {
-    for (struct pg_window *w = windows; w; w = w->next) {
+    for (struct pg_window *w = windows; w; w = w->next)
+    {
         w->layout_needed = true;
         pg_window_queue_draw(w);
     }
@@ -78,7 +85,8 @@ static bool has_min(const struct pg_window *win)
 static struct pg_rect title_button(const struct pg_window *win, int which)
 {
     int b = border(win);
-    int slot = which == TB_CLOSE ? 1 : which == TB_MAX ? 2 : (has_max(win) ? 3 : 2);
+    int slot = which == TB_CLOSE ? 1 : which == TB_MAX ? 2
+                                                       : (has_max(win) ? 3 : 2);
     struct pg_rect r = {win->width - b - slot * BUTTON_W, b, BUTTON_W, title_h(win)};
     return r;
 }
@@ -88,7 +96,8 @@ static int title_button_at(const struct pg_window *win, int x, int y)
     if (!decorated(win))
         return TB_NONE;
     static const int order[3] = {TB_CLOSE, TB_MAX, TB_MIN};
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         int which = order[i];
         if (which == TB_MAX && !has_max(win))
             continue;
@@ -113,11 +122,13 @@ static uint32_t edges_at(const struct pg_window *win, int x, int y)
     uint32_t e = 0;
     int g = PG_RESIZE_GRIP, corner = PG_RESIZE_GRIP * 2;
     bool left = x < g, right = x >= win->width - g, top = y < g - 2, bottom = y >= win->height - g;
-    if ((left || right) && (y < corner || y >= win->height - corner)) {
+    if ((left || right) && (y < corner || y >= win->height - corner))
+    {
         top = y < corner;
         bottom = y >= win->height - corner;
     }
-    if ((top || bottom) && (x < corner || x >= win->width - corner)) {
+    if ((top || bottom) && (x < corner || x >= win->width - corner))
+    {
         left = x < corner;
         right = x >= win->width - corner;
     }
@@ -159,10 +170,10 @@ static struct pg_window *create(const char *title, int x, int y, int width, int 
     if (!win)
         return NULL;
     win->flags = flags;
-    win->role = (flags & PG_WINDOW_POPUP) ? VB_ROLE_POPUP
-                : (flags & PG_WINDOW_PANEL) ? VB_ROLE_PANEL
+    win->role = (flags & PG_WINDOW_POPUP)        ? VB_ROLE_POPUP
+                : (flags & PG_WINDOW_PANEL)      ? VB_ROLE_PANEL
                 : (flags & PG_WINDOW_BACKGROUND) ? VB_ROLE_BACKGROUND
-                                                   : VB_ROLE_NORMAL;
+                                                 : VB_ROLE_NORMAL;
     if (win->role != VB_ROLE_NORMAL)
         win->flags |= PG_WINDOW_FRAMELESS;
     win->active = win->role == VB_ROLE_POPUP;
@@ -174,7 +185,8 @@ static struct pg_window *create(const char *title, int x, int y, int width, int 
         win->vb = vb_window_create(tw, th, win->title);
     else
         win->vb = vb_window_create_role(x, y, tw, th, win->title, win->role);
-    if (!win->vb) {
+    if (!win->vb)
+    {
         free(win);
         return NULL;
     }
@@ -220,8 +232,10 @@ struct pg_window *pg__popup_new(struct pg_window *owner, int x, int y, int width
 void pg__window_forget(struct pg_window *win, struct pg_widget *w)
 {
     struct pg_widget **slots[4] = {&win->hover, &win->grab, &win->focus, &win->click_widget};
-    for (int i = 0; i < 4; i++) {
-        for (struct pg_widget *p = *slots[i]; p; p = p->parent) {
+    for (int i = 0; i < 4; i++)
+    {
+        for (struct pg_widget *p = *slots[i]; p; p = p->parent)
+        {
             if (p != w)
                 continue;
             struct pg_widget *old = *slots[i];
@@ -246,7 +260,8 @@ void pg_window_destroy(struct pg_window *win)
     for (struct pg_window *w = windows; w; w = w->next)
         if (w->owner == win)
             pg_window_destroy(w);
-    if (win->vb) {
+    if (win->vb)
+    {
         vb_window_destroy(win->vb);
         win->vb = NULL;
     }
@@ -255,14 +270,17 @@ void pg_window_destroy(struct pg_window *win)
 void pg__reap(void)
 {
     struct pg_window **pp = &windows;
-    while (*pp) {
+    while (*pp)
+    {
         struct pg_window *w = *pp;
-        if (!w->dead) {
+        if (!w->dead)
+        {
             pp = &w->next;
             continue;
         }
         *pp = w->next;
-        if (w->child) {
+        if (w->child)
+        {
             struct pg_widget *c = w->child;
             w->child = NULL;
             pg_widget_destroy(c);
@@ -291,7 +309,8 @@ void pg_window_set_child(struct pg_window *win, struct pg_widget *child)
 {
     if (!win)
         return;
-    if (win->child && win->child != child) {
+    if (win->child && win->child != child)
+    {
         struct pg_widget *old = win->child;
         pg__window_forget(win, old);
         win->child = NULL;
@@ -483,13 +502,15 @@ void pg_window_set_focus(struct pg_window *win, struct pg_widget *w)
     struct pg_widget *old = win->focus;
     win->focus = w;
     struct pg_event e = {0};
-    if (old) {
+    if (old)
+    {
         old->focused = false;
         e.type = PG_EVENT_FOCUS_OUT;
         deliver(old, &e);
         pg_widget_queue_draw(old);
     }
-    if (w) {
+    if (w)
+    {
         w->focused = true;
         e.type = PG_EVENT_FOCUS_IN;
         deliver(w, &e);
@@ -510,7 +531,8 @@ void pg_window_damage(struct pg_window *win, int x, int y, int width, int height
     int x1 = pg__min(win->width, x + width), y1 = pg__min(win->height, y + height);
     if (x1 <= x0 || y1 <= y0)
         return;
-    if (!win->dirty_any) {
+    if (!win->dirty_any)
+    {
         win->dirty = (struct pg_rect){x0, y0, x1 - x0, y1 - y0};
         win->dirty_any = true;
         return;
@@ -538,18 +560,26 @@ uint32_t *pg_window_pixels(struct pg_window *win, int *stride)
 static void draw_glyph(struct pg_canvas *c, int which, struct pg_rect r, uint32_t color, bool maximized)
 {
     float cx = (float)r.x + (float)r.w / 2.0f, cy = (float)r.y + (float)r.h / 2.0f;
-    if (which == TB_MIN) {
+    if (which == TB_MIN)
+    {
         pgc_line(c, cx - 5.0f, cy + 0.5f, cx + 5.0f, cy + 0.5f, 1.2f, color);
-    } else if (which == TB_MAX) {
+    }
+    else if (which == TB_MAX)
+    {
         int x = (int)cx - 5, y = (int)cy - 5;
-        if (maximized) {
+        if (maximized)
+        {
             pgc_rrect_stroke(c, x + 2, y, 8, 8, 2, color, 200);
             pgc_fill(c, x, y + 2, 8, 8, pg_theme()->titlebar);
             pgc_rrect_stroke(c, x, y + 2, 8, 8, 2, color, 255);
-        } else {
+        }
+        else
+        {
             pgc_rrect_stroke(c, x, y, 10, 10, 2, color, 255);
         }
-    } else {
+    }
+    else
+    {
         pgc_line(c, cx - 5.0f, cy - 5.0f, cx + 5.0f, cy + 5.0f, 1.3f, color);
         pgc_line(c, cx + 5.0f, cy - 5.0f, cx - 5.0f, cy + 5.0f, 1.3f, color);
     }
@@ -563,7 +593,8 @@ static void draw_decor(struct pg_window *win)
     pgc_fill(c, b, b, win->width - 2 * b, th, t->titlebar);
     int right = win->width - b - BUTTON_W;
     static const int order[3] = {TB_CLOSE, TB_MAX, TB_MIN};
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 3; i++)
+    {
         int which = order[i];
         if ((which == TB_MAX && !has_max(win)) || (which == TB_MIN && !has_min(win)))
             continue;
@@ -572,10 +603,13 @@ static void draw_decor(struct pg_window *win)
         bool hot = win->title_hot == which;
         bool down = hot && win->title_pressed == which;
         uint32_t fg = win->active ? t->text2 : t->text3;
-        if (hot && which == TB_CLOSE) {
+        if (hot && which == TB_CLOSE)
+        {
             pgc_fill(c, r.x, r.y, r.w, r.h, down ? pgc_lighten(t->danger, -30) : t->danger);
             fg = 0xffffff;
-        } else if (hot) {
+        }
+        else if (hot)
+        {
             pgc_fill(c, r.x, r.y, r.w, r.h, down ? t->surface3 : t->surface2);
             fg = t->text;
         }
@@ -584,7 +618,8 @@ static void draw_decor(struct pg_window *win)
     int ty = b + (th - pgc_font_h(PGF_MEDIUM)) / 2;
     pgc_text_fit(c, PGF_MEDIUM, b + 14, ty, right - b - 24, win->title, win->active ? t->text : t->text3);
     pgc_fill_a(c, b, b + th - 1, win->width - 2 * b, 1, t->border, 110);
-    if (b) {
+    if (b)
+    {
         uint32_t col = win->active ? pgc_mix(t->border, t->accent, 70) : t->border;
         pgc_fill(c, 0, 0, win->width, 1, col);
         pgc_fill(c, 0, win->height - 1, win->width, 1, col);
@@ -622,12 +657,14 @@ void pg_window_flush(struct pg_window *win)
         draw_decor(win);
     else if (win->role == VB_ROLE_POPUP)
         pgc_fill(c, 0, 0, win->width, win->height, bg);
-    if (win->child) {
+    if (win->child)
+    {
         struct pg_clip saved = pgc_clip_push(c, content.x, content.y, content.w, content.h);
         pg__draw_widget(win->child, c);
         pgc_clip_pop(c, saved);
     }
-    if (win->role == VB_ROLE_POPUP) {
+    if (win->role == VB_ROLE_POPUP)
+    {
         pgc_unclip(c);
         pgc_clip(c, d.x, d.y, d.w, d.h);
         pgc_fill(c, 0, 0, win->width, 1, t->border);
@@ -661,7 +698,8 @@ static void set_hover(struct pg_window *win, struct pg_widget *target)
     struct pg_event e = {0};
     e.x = win->pointer_x;
     e.y = win->pointer_y;
-    for (struct pg_widget *w = old; w; w = w->parent) {
+    for (struct pg_widget *w = old; w; w = w->parent)
+    {
         if (chain_has(target, w) || !w->hovered)
             continue;
         w->hovered = false;
@@ -669,7 +707,8 @@ static void set_hover(struct pg_window *win, struct pg_widget *target)
         deliver(w, &e);
         pg_widget_queue_draw(w);
     }
-    for (struct pg_widget *w = target; w; w = w->parent) {
+    for (struct pg_widget *w = target; w; w = w->parent)
+    {
         if (w->hovered)
             continue;
         w->hovered = true;
@@ -700,12 +739,14 @@ static void motion(struct pg_window *win, int x, int y, uint32_t buttons)
     e.x = x;
     e.y = y;
     e.buttons = buttons;
-    if (win->grab) {
+    if (win->grab)
+    {
         deliver(win->grab, &e);
         return;
     }
     int hot = title_button_at(win, x, y);
-    if (hot != win->title_hot) {
+    if (hot != win->title_hot)
+    {
         win->title_hot = hot;
         damage_titlebar(win);
     }
@@ -727,23 +768,30 @@ static void press(struct pg_window *win, int x, int y, uint32_t button, uint32_t
 {
     win->focus_visible = false;
     uint64_t now = pg_time_ms();
-    if (button == VB_BUTTON_LEFT) {
+    if (button == VB_BUTTON_LEFT)
+    {
         int tb = title_button_at(win, x, y);
-        if (tb) {
+        if (tb)
+        {
             win->title_pressed = tb;
             damage_titlebar(win);
             return;
         }
         uint32_t edges = edges_at(win, x, y);
-        if (edges) {
+        if (edges)
+        {
             vb_window_start_resize(win->vb, edges);
             return;
         }
-        if (in_titlebar(win, x, y)) {
-            if (has_max(win) && now - win->title_click_ms < DOUBLE_CLICK_MS) {
+        if (in_titlebar(win, x, y))
+        {
+            if (has_max(win) && now - win->title_click_ms < DOUBLE_CLICK_MS)
+            {
                 win->title_click_ms = 0;
                 pg_window_toggle_maximize(win);
-            } else {
+            }
+            else
+            {
                 win->title_click_ms = now;
                 vb_window_move(win->vb);
             }
@@ -767,7 +815,8 @@ static void press(struct pg_window *win, int x, int y, uint32_t button, uint32_t
     e.buttons = buttons;
     e.clicks = win->click_count;
     struct pg_widget *h = bubble(target, &e);
-    if (h && !win->dead) {
+    if (h && !win->dead)
+    {
         win->grab = h;
         h->pressed = true;
         pg_widget_queue_draw(h);
@@ -776,7 +825,8 @@ static void press(struct pg_window *win, int x, int y, uint32_t button, uint32_t
 
 static void release(struct pg_window *win, int x, int y, uint32_t button, uint32_t buttons)
 {
-    if (win->title_pressed) {
+    if (win->title_pressed)
+    {
         int tb = win->title_pressed;
         win->title_pressed = 0;
         damage_titlebar(win);
@@ -800,19 +850,16 @@ static void release(struct pg_window *win, int x, int y, uint32_t button, uint32
     e.button = button;
     e.buttons = buttons;
     e.clicks = win->click_count;
-    if (!buttons)
-        win->grab = NULL;
     deliver(g, &e);
-    if (win->dead)
+    if (win->dead || buttons)
         return;
-    if (!buttons) {
-        g = win->grab ? NULL : g;
-        if (g) {
-            g->pressed = false;
-            pg_widget_queue_draw(g);
-        }
-        motion(win, x, y, buttons);
+    if (win->grab == g)
+    {
+        win->grab = NULL;
+        g->pressed = false;
+        pg_widget_queue_draw(g);
     }
+    motion(win, x, y, buttons);
 }
 
 static void wheel(struct pg_window *win, int x, int y, int amount)
@@ -882,11 +929,13 @@ static void key(struct pg_window *win, const struct vb_event *v)
     struct pg_widget *start = win->focus ? win->focus : win->child;
     if (bubble(start, &e) || win->dead || !v->pressed)
         return;
-    if (e.key == PG_KEY_TAB) {
+    if (e.key == PG_KEY_TAB)
+    {
         focus_step(win, (e.mods & VB_MOD_SHIFT) ? -1 : 1);
         return;
     }
-    if (e.key == PG_KEY_ESCAPE && win->role == VB_ROLE_POPUP) {
+    if (e.key == PG_KEY_ESCAPE && win->role == VB_ROLE_POPUP)
+    {
         if (win->popup_done)
             win->popup_done(win, win->popup_data);
         else
@@ -906,7 +955,8 @@ static void pointer(struct pg_window *win, const struct vb_event *v)
         wheel(win, x, y, v->wheel);
     if (!v->changed && !v->wheel)
         motion(win, x, y, v->buttons);
-    for (uint32_t bit = 1; bit <= 4 && !win->dead; bit <<= 1) {
+    for (uint32_t bit = 1; bit <= 4 && !win->dead; bit <<= 1)
+    {
         if (down & bit)
             press(win, x, y, bit, v->buttons);
         if (up & bit)
@@ -916,7 +966,8 @@ static void pointer(struct pg_window *win, const struct vb_event *v)
 
 void pg__window_event(struct pg_window *win, const struct vb_event *v)
 {
-    switch (v->type) {
+    switch (v->type)
+    {
     case VB_EVENT_POINTER:
         pointer(win, v);
         break;
@@ -930,7 +981,8 @@ void pg__window_event(struct pg_window *win, const struct vb_event *v)
         win->pointer_inside = false;
         if (!win->grab)
             set_hover(win, NULL);
-        if (win->title_hot) {
+        if (win->title_hot)
+        {
             win->title_hot = 0;
             damage_titlebar(win);
         }
@@ -941,7 +993,8 @@ void pg__window_event(struct pg_window *win, const struct vb_event *v)
         break;
     case VB_EVENT_FOCUS:
         win->active = v->focused;
-        if (!v->focused && win->grab) {
+        if (!v->focused && win->grab)
+        {
             win->grab->pressed = false;
             win->grab = NULL;
         }
@@ -956,9 +1009,11 @@ void pg__window_event(struct pg_window *win, const struct vb_event *v)
         else
             pg_window_destroy(win);
         break;
-    case VB_EVENT_CONFIGURE: {
+    case VB_EVENT_CONFIGURE:
+    {
         int st = (v->width > 0 || v->state) ? v->state : win->state;
-        if (st != win->state) {
+        if (st != win->state)
+        {
             win->state = st;
             win->layout_needed = true;
             pg_window_queue_draw(win);

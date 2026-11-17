@@ -257,6 +257,12 @@ void pg_window_destroy(struct pg_window *win)
     if (!win || win->dead)
         return;
     win->dead = true;
+    if (win->popup_done)
+    {
+        void (*done)(struct pg_window *, void *) = win->popup_done;
+        win->popup_done = NULL;
+        done(win, win->popup_data);
+    }
     for (struct pg_window *w = windows; w; w = w->next)
         if (w->owner == win)
             pg_window_destroy(w);
@@ -936,10 +942,7 @@ static void key(struct pg_window *win, const struct vb_event *v)
     }
     if (e.key == PG_KEY_ESCAPE && win->role == VB_ROLE_POPUP)
     {
-        if (win->popup_done)
-            win->popup_done(win, win->popup_data);
-        else
-            pg_window_destroy(win);
+        pg_window_destroy(win);
     }
 }
 
@@ -1004,10 +1007,7 @@ void pg__window_event(struct pg_window *win, const struct vb_event *v)
         pg_window_close(win);
         break;
     case VB_EVENT_POPUP_DONE:
-        if (win->popup_done)
-            win->popup_done(win, win->popup_data);
-        else
-            pg_window_destroy(win);
+        pg_window_destroy(win);
         break;
     case VB_EVENT_CONFIGURE:
     {

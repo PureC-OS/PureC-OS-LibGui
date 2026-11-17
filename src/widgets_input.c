@@ -437,7 +437,7 @@ static bool radio_event(struct pg_widget *w, const struct pg_event *e)
             target = r->next ? r->next : r->head;
         else
             for (struct radio *q = r->head; q; q = q->next)
-                if (q->next == r || (!target && r == r->head && !q->next))
+                if (q->next == r || (r == r->head && !q->next))
                     target = q;
         if (target && target != r)
         {

@@ -812,16 +812,27 @@ int pg_scroll_offset(const struct pg_widget *w)
     return w && w->cls == &pg__scroll_class ? ((const struct scroll *)w)->offset : 0;
 }
 
-void pg_scroll_reveal(struct pg_widget *w, const struct pg_widget *child)
+static void reveal(struct pg_widget *w, struct pg_rect r)
 {
-    if (!w || w->cls != &pg__scroll_class || !child)
-        return;
     struct scroll *s = (struct scroll *)w;
-    int top = child->rect.y - 8, bottom = child->rect.y + child->rect.h + 8;
+    int top = r.y - 8, bottom = r.y + r.h + 8;
     if (top < w->rect.y)
         scroll_set(s, s->offset - (w->rect.y - top));
     else if (bottom > w->rect.y + w->rect.h)
         scroll_set(s, s->offset + (bottom - w->rect.y - w->rect.h));
+}
+
+void pg_scroll_reveal(struct pg_widget *w, const struct pg_widget *child)
+{
+    if (w && w->cls == &pg__scroll_class && child)
+        reveal(w, child->rect);
+}
+
+void pg__scroll_reveal_rect(struct pg_widget *from, struct pg_rect r)
+{
+    for (struct pg_widget *p = from ? from->parent : NULL; p; p = p->parent)
+        if (p->cls == &pg__scroll_class)
+            reveal(p, r);
 }
 
 void pg__scroll_reveal_ancestors(struct pg_widget *w)

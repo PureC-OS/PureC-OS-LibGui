@@ -22,7 +22,8 @@ static int click_event(struct pg_widget *w, const struct pg_event *e)
     return 0;
 }
 
-struct button {
+struct button
+{
     struct pg_widget base;
     char *label;
     int icon;
@@ -45,7 +46,8 @@ static void button_draw(struct pg_widget *w, struct pg_canvas *c)
     bool hot = w->hovered && pg_widget_is_enabled(w);
     bool down = w->pressed && hot;
     uint32_t bg, fg;
-    switch (b->style) {
+    switch (b->style)
+    {
     case PG_BUTTON_PRIMARY:
         bg = p->accent;
         fg = p->on_accent;
@@ -82,11 +84,13 @@ static void button_draw(struct pg_widget *w, struct pg_canvas *c)
     bool text = b->label && b->label[0];
     int tw = (text ? pgc_text_w(PGF_MEDIUM, b->label) : 0) + (b->icon >= 0 ? (text ? 24 : ipx) : 0);
     int tx = r.x + (r.w - tw) / 2;
-    if (b->icon >= 0) {
+    if (b->icon >= 0)
+    {
         pgc_icon(c, b->icon, PG_ICON_S, tx, r.y + (r.h - ipx) / 2, fg);
         tx += 24;
     }
-    if (text) {
+    if (text)
+    {
         struct pg_clip saved = pgc_clip_push(c, r.x + 4, r.y, r.w - 8, r.h);
         pgc_text(c, PGF_MEDIUM, tx, r.y + (r.h - pgc_font_h(PGF_MEDIUM)) / 2, b->label, fg);
         pgc_clip_pop(c, saved);
@@ -154,7 +158,8 @@ void pg_button_set_style(struct pg_widget *w, enum pg_button_style style)
     pg_widget_queue_draw(w);
 }
 
-struct toggle {
+struct toggle
+{
     struct pg_widget base;
     bool active;
     int anim;
@@ -198,7 +203,8 @@ static bool toggle_tick(void *data)
     else if (t->anim > target)
         t->anim = pg__max(target, t->anim - step);
     pg_widget_queue_draw(&t->base);
-    if (t->anim == target) {
+    if (t->anim == target)
+    {
         t->timer = 0;
         return false;
     }
@@ -210,9 +216,12 @@ static void toggle_apply(struct toggle *t, bool active, bool emit)
     if (t->active == active)
         return;
     t->active = active;
-    if (!t->base.window) {
+    if (!t->base.window)
+    {
         t->anim = active ? 256 : 0;
-    } else if (!t->timer) {
+    }
+    else if (!t->timer)
+    {
         t->timer = pg_timer_add(16, toggle_tick, t);
     }
     pg_widget_queue_draw(&t->base);
@@ -269,7 +278,8 @@ void pg_toggle_set_active(struct pg_widget *w, bool active)
         toggle_apply((struct toggle *)w, active, false);
 }
 
-struct checkbox {
+struct checkbox
+{
     struct pg_widget base;
     char *label;
     bool active;
@@ -288,10 +298,13 @@ static void checkbox_draw(struct pg_widget *w, struct pg_canvas *c)
     const struct pg_theme *p = pg_theme();
     int x = w->rect.x, y = w->rect.y + (w->rect.h - 22) / 2;
     bool hot = w->hovered && pg_widget_is_enabled(w);
-    if (k->active) {
+    if (k->active)
+    {
         pgc_rrect(c, x, y, 22, 22, 6, disabled_mix(w, hot ? pgc_lighten(p->accent, p->light ? -14 : 18) : p->accent), 255);
         pgc_icon(c, PGI_CHECK, PG_ICON_S, x + 2, y + 2, disabled_mix(w, p->on_accent));
-    } else {
+    }
+    else
+    {
         pgc_rrect(c, x, y, 22, 22, 6, hot ? p->surface2 : (p->light ? 0xffffff : p->bg), 255);
         pgc_rrect_stroke(c, x, y, 22, 22, 6, disabled_mix(w, hot ? p->accent : p->border), 255);
     }
@@ -306,7 +319,8 @@ static bool checkbox_event(struct pg_widget *w, const struct pg_event *e)
 {
     struct checkbox *k = (struct checkbox *)w;
     int r = click_event(w, e);
-    if (r == 2) {
+    if (r == 2)
+    {
         k->active = !k->active;
         pg_widget_queue_draw(w);
         pg_widget_emit(w, PG_SIGNAL_CHANGED);
@@ -353,7 +367,8 @@ void pg_checkbox_set_active(struct pg_widget *w, bool active)
     pg_widget_queue_draw(w);
 }
 
-struct radio {
+struct radio
+{
     struct pg_widget base;
     char *label;
     bool active;
@@ -374,10 +389,13 @@ static void radio_draw(struct pg_widget *w, struct pg_canvas *c)
     const struct pg_theme *p = pg_theme();
     int x = w->rect.x, y = w->rect.y + (w->rect.h - 20) / 2;
     bool hot = w->hovered && pg_widget_is_enabled(w);
-    if (r->active) {
+    if (r->active)
+    {
         pgc_circle(c, x + 10, y + 10, 10, disabled_mix(w, p->accent), 255);
         pgc_circle(c, x + 10, y + 10, 4, p->on_accent, 255);
-    } else {
+    }
+    else
+    {
         pgc_circle(c, x + 10, y + 10, 10, disabled_mix(w, hot ? p->accent : p->border), 255);
         pgc_circle(c, x + 10, y + 10, 8, hot ? p->surface2 : (p->light ? 0xffffff : p->bg), 255);
     }
@@ -392,8 +410,10 @@ static void radio_select(struct radio *r, bool emit)
 {
     if (r->active)
         return;
-    for (struct radio *q = r->head; q; q = q->next) {
-        if (q->active) {
+    for (struct radio *q = r->head; q; q = q->next)
+    {
+        if (q->active)
+        {
             q->active = false;
             pg_widget_queue_draw(&q->base);
         }
@@ -410,7 +430,8 @@ static bool radio_event(struct pg_widget *w, const struct pg_event *e)
     int k = click_event(w, e);
     if (k == 2)
         radio_select(r, true);
-    if (!k && e->type == PG_EVENT_KEY_DOWN && (e->key == PG_KEY_DOWN || e->key == PG_KEY_UP)) {
+    if (!k && e->type == PG_EVENT_KEY_DOWN && (e->key == PG_KEY_DOWN || e->key == PG_KEY_UP))
+    {
         struct radio *target = NULL;
         if (e->key == PG_KEY_DOWN)
             target = r->next ? r->next : r->head;
@@ -418,7 +439,8 @@ static bool radio_event(struct pg_widget *w, const struct pg_event *e)
             for (struct radio *q = r->head; q; q = q->next)
                 if (q->next == r || (!target && r == r->head && !q->next))
                     target = q;
-        if (target && target != r) {
+        if (target && target != r)
+        {
             radio_select(target, true);
             pg_widget_grab_focus(&target->base);
         }
@@ -432,13 +454,17 @@ static void radio_destroy(struct pg_widget *w)
     struct radio *r = (struct radio *)w;
     free(r->label);
     struct radio *head = r->head;
-    if (head == r) {
+    if (head == r)
+    {
         struct radio *nh = r->next;
         for (struct radio *q = nh; q; q = q->next)
             q->head = nh;
-    } else {
+    }
+    else
+    {
         for (struct radio *q = head; q; q = q->next)
-            if (q->next == r) {
+            if (q->next == r)
+            {
                 q->next = r->next;
                 break;
             }
@@ -462,14 +488,17 @@ struct pg_widget *pg_radio_new(const char *label, struct pg_widget *group)
     r->label = pg__strdup(label);
     r->base.focusable = true;
     r->base.halign = PG_ALIGN_START;
-    if (group && group->cls == &radio_class) {
+    if (group && group->cls == &radio_class)
+    {
         struct radio *g = (struct radio *)group;
         r->head = g->head;
         struct radio *q = r->head;
         while (q->next)
             q = q->next;
         q->next = r;
-    } else {
+    }
+    else
+    {
         r->head = r;
         r->active = true;
     }
@@ -498,7 +527,8 @@ int pg_radio_group_index(const struct pg_widget *w)
     return -1;
 }
 
-struct slider {
+struct slider
+{
     struct pg_widget base;
     int min, max, value;
     uint32_t color;
@@ -569,7 +599,8 @@ static bool slider_event(struct pg_widget *w, const struct pg_event *e)
 {
     struct slider *s = (struct slider *)w;
     int step = pg__max(1, (s->max - s->min) / 20);
-    switch (e->type) {
+    switch (e->type)
+    {
     case PG_EVENT_POINTER_DOWN:
         if (e->button != PG_BUTTON_LEFT)
             return false;
@@ -665,7 +696,8 @@ bool pg_slider_dragging(const struct pg_widget *w)
     return w && w->cls == &slider_class && ((const struct slider *)w)->dragging;
 }
 
-struct entry {
+struct entry
+{
     struct pg_widget base;
     char *buf;
     int len, cap;
@@ -709,7 +741,8 @@ static int utf8_next_i(const char *s, int len, int i)
 
 static int shown_width(const struct entry *e, int bytes)
 {
-    if (e->password) {
+    if (e->password)
+    {
         int n = 0;
         for (int i = 0; i < bytes; i = utf8_next_i(e->buf, e->len, i))
             n++;
@@ -749,20 +782,27 @@ static void entry_draw(struct pg_widget *w, struct pg_canvas *c)
     int ty = r.y + (r.h - pgc_font_h(PGF_BODY)) / 2;
     int x0 = r.x + ENTRY_PAD - e->scroll;
     struct pg_clip saved = pgc_clip_push(c, r.x + ENTRY_PAD - 2, r.y + 2, r.w - 2 * ENTRY_PAD + 4, r.h - 4);
-    if (e->cursor != e->anchor && focus) {
+    if (e->cursor != e->anchor && focus)
+    {
         int a = pg__min(e->cursor, e->anchor), b = pg__max(e->cursor, e->anchor);
         int sx = x0 + shown_width(e, a), ex = x0 + shown_width(e, b);
         pgc_rrect(c, sx, r.y + 8, ex - sx, r.h - 16, 3, p->accent, 90);
     }
-    if (e->len) {
-        if (e->password) {
+    if (e->len)
+    {
+        if (e->password)
+        {
             int sw = pgc_text_w(PGF_BODY, "*"), x = x0;
             for (int i = 0; i < e->len; i = utf8_next_i(e->buf, e->len, i), x += sw)
                 pgc_text(c, PGF_BODY, x, ty, "*", disabled_mix(w, p->text));
-        } else {
+        }
+        else
+        {
             pgc_text(c, PGF_BODY, x0, ty, e->buf, disabled_mix(w, p->text));
         }
-    } else if (e->placeholder && e->placeholder[0]) {
+    }
+    else if (e->placeholder && e->placeholder[0])
+    {
         pgc_text(c, PGF_BODY, r.x + ENTRY_PAD, ty, e->placeholder, p->text3);
     }
     if (focus && e->caret)
@@ -789,7 +829,8 @@ static void caret_reset(struct entry *e)
 
 static void delete_range(struct entry *e, int a, int b)
 {
-    if (a > b) {
+    if (a > b)
+    {
         int t = a;
         a = b;
         b = t;
@@ -827,9 +868,11 @@ static int index_at(struct entry *e, int px)
 {
     int target = px - (e->base.rect.x + ENTRY_PAD) + e->scroll;
     int best = 0, prev_w = 0;
-    for (int i = 0; i <= e->len;) {
+    for (int i = 0; i <= e->len;)
+    {
         int wv = shown_width(e, i);
-        if (wv >= target) {
+        if (wv >= target)
+        {
             best = (target - prev_w < wv - target && i > 0) ? utf8_prev(e->buf, i) : i;
             return best;
         }
@@ -845,11 +888,13 @@ static bool entry_event(struct pg_widget *w, const struct pg_event *ev)
 {
     struct entry *e = (struct entry *)w;
     bool shift = ev->mods & PG_MOD_SHIFT, ctrl = ev->mods & PG_MOD_CTRL;
-    switch (ev->type) {
+    switch (ev->type)
+    {
     case PG_EVENT_FOCUS_IN:
     case PG_EVENT_FOCUS_OUT:
         caret_reset(e);
-        if (ev->type == PG_EVENT_FOCUS_OUT && e->timer) {
+        if (ev->type == PG_EVENT_FOCUS_OUT && e->timer)
+        {
             pg_timer_remove(e->timer);
             e->timer = 0;
         }
@@ -857,10 +902,13 @@ static bool entry_event(struct pg_widget *w, const struct pg_event *ev)
     case PG_EVENT_POINTER_DOWN:
         if (ev->button != PG_BUTTON_LEFT)
             return false;
-        if (ev->clicks >= 2) {
+        if (ev->clicks >= 2)
+        {
             e->anchor = 0;
             e->cursor = e->len;
-        } else {
+        }
+        else
+        {
             e->cursor = index_at(e, ev->x);
             if (!shift)
                 e->anchor = e->cursor;
@@ -884,37 +932,57 @@ static bool entry_event(struct pg_widget *w, const struct pg_event *ev)
     }
     bool changed = false;
     int k = ev->key;
-    if (ctrl && k == PG_KEY_A) {
+    if (ctrl && k == PG_KEY_A)
+    {
         e->anchor = 0;
         e->cursor = e->len;
-    } else if (k == PG_KEY_BACKSPACE) {
+    }
+    else if (k == PG_KEY_BACKSPACE)
+    {
         if (!delete_selection(e) && e->cursor > 0)
             delete_range(e, utf8_prev(e->buf, e->cursor), e->cursor);
         changed = true;
-    } else if (k == PG_KEY_DELETE) {
+    }
+    else if (k == PG_KEY_DELETE)
+    {
         if (!delete_selection(e) && e->cursor < e->len)
             delete_range(e, e->cursor, utf8_next_i(e->buf, e->len, e->cursor));
         changed = true;
-    } else if (k == PG_KEY_LEFT || k == PG_KEY_RIGHT || k == PG_KEY_HOME || k == PG_KEY_END) {
-        if (!shift && e->cursor != e->anchor && (k == PG_KEY_LEFT || k == PG_KEY_RIGHT)) {
+    }
+    else if (k == PG_KEY_LEFT || k == PG_KEY_RIGHT || k == PG_KEY_HOME || k == PG_KEY_END)
+    {
+        if (!shift && e->cursor != e->anchor && (k == PG_KEY_LEFT || k == PG_KEY_RIGHT))
+        {
             e->cursor = k == PG_KEY_LEFT ? pg__min(e->cursor, e->anchor) : pg__max(e->cursor, e->anchor);
-        } else if (k == PG_KEY_LEFT) {
+        }
+        else if (k == PG_KEY_LEFT)
+        {
             e->cursor = utf8_prev(e->buf, e->cursor);
-        } else if (k == PG_KEY_RIGHT) {
+        }
+        else if (k == PG_KEY_RIGHT)
+        {
             e->cursor = utf8_next_i(e->buf, e->len, e->cursor);
-        } else {
+        }
+        else
+        {
             e->cursor = k == PG_KEY_HOME ? 0 : e->len;
         }
         if (!shift)
             e->anchor = e->cursor;
-    } else if (k == PG_KEY_ENTER || k == PG_KEY_KP_ENTER) {
+    }
+    else if (k == PG_KEY_ENTER || k == PG_KEY_KP_ENTER)
+    {
         pg_widget_emit(w, PG_SIGNAL_ACTIVATE);
         return true;
-    } else if (ev->ch) {
+    }
+    else if (ev->ch)
+    {
         char ch = (char)ev->ch;
         insert_text(e, &ch, 1);
         changed = true;
-    } else {
+    }
+    else
+    {
         return false;
     }
     caret_reset(e);
@@ -950,7 +1018,8 @@ struct pg_widget *pg_entry_new(const char *placeholder)
     e->buf = calloc(1, (size_t)e->cap + 1);
     e->placeholder = pg__strdup(placeholder);
     e->base.focusable = true;
-    if (!e->buf) {
+    if (!e->buf)
+    {
         pg_widget_destroy(&e->base);
         return NULL;
     }
@@ -1001,7 +1070,8 @@ void pg_entry_set_max_length(struct pg_widget *w, int max)
         return;
     e->buf = nb;
     e->cap = max;
-    if (e->len > max) {
+    if (e->len > max)
+    {
         e->len = max;
         e->buf[max] = 0;
     }

@@ -70,7 +70,6 @@ void pg__reap(void);
 bool pg__have_windows(void);
 void pg__relayout_all(void);
 void pg__window_forget(struct pg_window *win, struct pg_widget *w);
-void pg__widget_set_window(struct pg_widget *w, struct pg_window *win);
 void pg__draw_widget(struct pg_widget *w, struct pg_canvas *c);
 struct pg_widget *pg__hit(struct pg_widget *w, int x, int y);
 

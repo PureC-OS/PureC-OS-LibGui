@@ -16,16 +16,6 @@ struct pg_widget *pg_widget_new(const struct pg_widget_class *cls)
     return w;
 }
 
-void pg__widget_set_window(struct pg_widget *w, struct pg_window *win)
-{
-    for (; w; w = w->next) {
-        w->window = win;
-        pg__widget_set_window(w->first, win);
-        if (!w->parent)
-            break;
-    }
-}
-
 static void set_window_tree(struct pg_widget *w, struct pg_window *win)
 {
     w->window = win;
@@ -83,7 +73,8 @@ static void destroy_tree(struct pg_widget *w)
 {
     if (w->slots[PG_SIGNAL_DESTROY].fn)
         w->slots[PG_SIGNAL_DESTROY].fn(w, w->slots[PG_SIGNAL_DESTROY].data);
-    while (w->first) {
+    while (w->first)
+    {
         struct pg_widget *c = w->first;
         unlink_child(c);
         destroy_tree(c);
@@ -266,7 +257,8 @@ bool pg_widget_focus_visible(const struct pg_widget *w)
 void pg_widget_measure(struct pg_widget *w, int *width, int *height)
 {
     int mw = 0, mh = 0;
-    if (w && w->visible) {
+    if (w && w->visible)
+    {
         if (w->cls && w->cls->measure)
             w->cls->measure(w, &mw, &mh);
         if (w->req_w >= 0)
@@ -288,13 +280,18 @@ int pg_widget_height_for_width(struct pg_widget *w, int width)
         return 0;
     int inner = width - w->margin_l - w->margin_r;
     int h;
-    if (w->req_h >= 0) {
+    if (w->req_h >= 0)
+    {
         h = w->req_h;
-    } else if (w->cls && w->cls->height_for_width) {
+    }
+    else if (w->cls && w->cls->height_for_width)
+    {
         if (w->req_w >= 0 && w->halign != PG_ALIGN_FILL)
             inner = pg__min(inner, w->req_w);
         h = w->cls->height_for_width(w, pg__max(inner, 0));
-    } else {
+    }
+    else
+    {
         int mw = 0;
         h = 0;
         if (w->cls && w->cls->measure)
@@ -320,13 +317,15 @@ void pg_widget_place(struct pg_widget *w, int x, int y, int width, int height)
     int iw = pg__max(0, width - w->margin_l - w->margin_r);
     int ih = pg__max(0, height - w->margin_t - w->margin_b);
     int cw = iw, ch = ih;
-    if (w->halign != PG_ALIGN_FILL || w->valign != PG_ALIGN_FILL) {
+    if (w->halign != PG_ALIGN_FILL || w->valign != PG_ALIGN_FILL)
+    {
         int nw = 0, nh = 0;
         pg_widget_measure(w, &nw, &nh);
         nw -= w->margin_l + w->margin_r;
         if (w->halign != PG_ALIGN_FILL)
             cw = pg__min(iw, nw);
-        if (w->valign != PG_ALIGN_FILL) {
+        if (w->valign != PG_ALIGN_FILL)
+        {
             int hh = pg_widget_height_for_width(w, cw + w->margin_l + w->margin_r) - w->margin_t - w->margin_b;
             ch = pg__min(ih, hh);
         }
@@ -357,7 +356,8 @@ void pg__draw_widget(struct pg_widget *w, struct pg_canvas *c)
         return;
     if (w->cls && w->cls->draw)
         w->cls->draw(w, c);
-    if (w->first) {
+    if (w->first)
+    {
         struct pg_clip saved = {0};
         if (w->clip)
             saved = pgc_clip_push(c, w->rect.x, w->rect.y, w->rect.w, w->rect.h);
@@ -374,7 +374,8 @@ struct pg_widget *pg__hit(struct pg_widget *w, int x, int y)
 {
     if (!w || !w->visible || !pg__rect_has(w->rect, x, y))
         return NULL;
-    for (struct pg_widget *c = w->last; c; c = c->prev) {
+    for (struct pg_widget *c = w->last; c; c = c->prev)
+    {
         struct pg_widget *h = pg__hit(c, x, y);
         if (h)
             return h;

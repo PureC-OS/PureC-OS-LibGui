@@ -228,7 +228,8 @@ void pgc_rrect_stroke(struct pg_canvas *c, int x, int y, int w, int h, int r, ui
             }
             else
             {
-                xx = x + w - 2 < x1 ? x + w - 2 : x1 - 1;
+                int jump = corner_rows ? x + w - r - 1 : x + w - 2;
+                xx = jump < x1 ? jump : x1 - 1;
                 continue;
             }
             uint32_t a = cov * alpha / 255;

@@ -8,6 +8,8 @@ static bool wants_hexpand(struct pg_widget *w)
         return false;
     if (w->hexpand)
         return true;
+    if (w->req_w >= 0)
+        return false;
     for (struct pg_widget *c = w->first; c; c = c->next)
         if (wants_hexpand(c))
             return true;
@@ -20,6 +22,8 @@ static bool wants_vexpand(struct pg_widget *w)
         return false;
     if (w->vexpand)
         return true;
+    if (w->req_h >= 0)
+        return false;
     for (struct pg_widget *c = w->first; c; c = c->next)
         if (wants_vexpand(c))
             return true;

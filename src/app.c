@@ -35,7 +35,7 @@ static struct {
 
 const char *pg_version(void)
 {
-    return "2.2.0";
+    return "2.2.2";
 }
 
 char *pg__strdup(const char *s)
@@ -251,6 +251,59 @@ static bool dispatch_server(void)
     }
 }
 
+static bool iterate(int timeout_ms, bool use_timer_timeout)
+{
+    if (!dispatch_server()) {
+        app.code = 1;
+        return false;
+    }
+    run_timers();
+    pg__flush_all();
+    pg__reap();
+    if (!app.running || (!app.hold && !pg__have_windows() && use_timer_timeout))
+        return false;
+    struct pollfd fds[32];
+    struct pg_watch *map[32];
+    int n = 0;
+    fds[n].fd = vb_fd();
+    fds[n].events = POLLIN;
+    fds[n].revents = 0;
+    map[n++] = NULL;
+    for (struct pg_watch *w = app.watches; w && n < 32; w = w->next) {
+        if (w->dead)
+            continue;
+        fds[n].fd = w->fd;
+        fds[n].events = (short)(((w->events & PG_FD_READ) ? POLLIN : 0) | ((w->events & PG_FD_WRITE) ? POLLOUT : 0));
+        fds[n].revents = 0;
+        map[n++] = w;
+    }
+    int wait = use_timer_timeout ? next_timeout() : timeout_ms;
+    if (!use_timer_timeout && wait > 0) {
+        int t = next_timeout();
+        if (t >= 0 && t < wait)
+            wait = t;
+    }
+    int r = poll(fds, (nfds_t)n, wait);
+    if (r <= 0)
+        return true;
+    if (fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) {
+        app.code = 1;
+        return false;
+    }
+    for (int i = 1; i < n; i++) {
+        if (!fds[i].revents || map[i]->dead)
+            continue;
+        uint32_t ev = 0;
+        if (fds[i].revents & (POLLIN | POLLHUP | POLLERR))
+            ev |= PG_FD_READ;
+        if (fds[i].revents & POLLOUT)
+            ev |= PG_FD_WRITE;
+        map[i]->fn(map[i]->fd, ev, map[i]->data);
+    }
+    sweep();
+    return true;
+}
+
 int pg_run(void)
 {
     if (!app.ready && !pg_init(0, NULL))
@@ -258,50 +311,21 @@ int pg_run(void)
     app.running = true;
     app.code = 0;
     while (app.running) {
-        if (!dispatch_server()) {
-            app.code = 1;
+        if (!iterate(0, true))
             break;
-        }
-        run_timers();
-        pg__flush_all();
-        pg__reap();
-        if (!app.running || (!app.hold && !pg__have_windows()))
-            break;
-        struct pollfd fds[32];
-        struct pg_watch *map[32];
-        int n = 0;
-        fds[n].fd = vb_fd();
-        fds[n].events = POLLIN;
-        fds[n].revents = 0;
-        map[n++] = NULL;
-        for (struct pg_watch *w = app.watches; w && n < 32; w = w->next) {
-            if (w->dead)
-                continue;
-            fds[n].fd = w->fd;
-            fds[n].events = (short)(((w->events & PG_FD_READ) ? POLLIN : 0) | ((w->events & PG_FD_WRITE) ? POLLOUT : 0));
-            fds[n].revents = 0;
-            map[n++] = w;
-        }
-        int r = poll(fds, (nfds_t)n, next_timeout());
-        if (r <= 0)
-            continue;
-        if (fds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) {
-            app.code = 1;
-            break;
-        }
-        for (int i = 1; i < n; i++) {
-            if (!fds[i].revents || map[i]->dead)
-                continue;
-            uint32_t ev = 0;
-            if (fds[i].revents & (POLLIN | POLLHUP | POLLERR))
-                ev |= PG_FD_READ;
-            if (fds[i].revents & POLLOUT)
-                ev |= PG_FD_WRITE;
-            map[i]->fn(map[i]->fd, ev, map[i]->data);
-        }
-        sweep();
     }
     app.running = false;
     pg__reap();
     return app.code;
+}
+
+bool pg_pump(int timeout_ms)
+{
+    if (!app.ready)
+        return false;
+    bool was = app.running;
+    app.running = true;
+    bool ok = iterate(timeout_ms < 0 ? 0 : timeout_ms, false);
+    app.running = was;
+    return ok;
 }

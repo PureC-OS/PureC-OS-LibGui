@@ -4,7 +4,7 @@
 
 #define PG_VERSION_MAJOR 2
 #define PG_VERSION_MINOR 2
-#define PG_VERSION_PATCH 0
+#define PG_VERSION_PATCH 2
 
 #define PG_FD_READ 1u
 #define PG_FD_WRITE 4u
@@ -15,6 +15,7 @@ typedef void (*pg_fd_fn)(int fd, uint32_t events, void *data);
 const char *pg_version(void);
 bool pg_init(int argc, char **argv);
 int pg_run(void);
+bool pg_pump(int timeout_ms);
 void pg_quit(int code);
 void pg_shutdown(void);
 bool pg_running(void);

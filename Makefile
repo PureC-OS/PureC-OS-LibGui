@@ -12,7 +12,7 @@ LINKER_SCRIPT := $(ROOT_DIR)/linker-userspace.ld
 VB_DIR ?= $(ROOT_DIR)/video-backend
 LIBVB := $(BIN_DIR)/video-backend/libvb.a
 
-CFLAGS := $(CPPFLAGS) -I$(ROOT_DIR)/src/libc/include/hosted -I$(CURDIR)/include -I$(VB_DIR)/include \
+CFLAGS := $(CPPFLAGS) -I$(LIBC_DIR)/include/hosted -I$(CURDIR)/include -I$(VB_DIR)/include \
 	$(USER_CFLAGS) -O2 -Wall -Wextra $(DEPFLAGS)
 
 SOURCES := $(wildcard src/*.c)
@@ -36,7 +36,7 @@ $(LIBVB):
 	$(MAKE) -C $(VB_DIR) ROOT_DIR=$(ROOT_DIR)
 
 $(CRT0) $(LIBPUREC):
-	$(MAKE) -C $(ROOT_DIR)/src/libc
+	$(MAKE) -C $(LIBC_DIR)
 
 PKG_FILE := $(OUT)/libgui-$(VERSION)-$(PKGREL)-x86_64.pkg.tar.gz
 SIGN_KEY ?= $(HOME)/.config/purec-pkg/signing.pem

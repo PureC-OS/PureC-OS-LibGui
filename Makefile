@@ -72,7 +72,7 @@ package: all
 	rm -f $(OUT)/libgui-*.pkg.tar.gz*
 	python3 $(ROOT_DIR)/mk/pkg/mkpkg.py --name libgui --version $(VERSION)-$(PKGREL) \
 		--desc "PureGUI toolkit: widgets, layout and windows on top of videod" -o $(OUT) \
-		--depend "video-backend>=1.1.0" \
+		--depend "video-backend>=1.1.0" --depend "libc" \
 		--file usr/lib/libpg.a=$(LIBPG) \
 		--file usr/lib/libpg.so.$(VERSION)=$(LIBPG_SO_REAL) \
 		--link usr/lib/libpg.so.$(SOMAJOR)=libpg.so.$(VERSION) \

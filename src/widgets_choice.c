@@ -342,6 +342,9 @@ struct item
     int icon;
     bool enabled;
     bool separator;
+    bool checked;
+    bool checkable;
+    char *shortcut;
     pg_menu_fn fn;
     void *data;
 };
@@ -355,6 +358,7 @@ struct popup_list
     int hot;
     int down;
     void (*pick)(struct popup_list *pl, int index);
+    void (*nav)(struct popup_list *pl, int dir);
     void *owner;
 };
 
@@ -373,8 +377,11 @@ static void plist_measure(struct pg_widget *w, int *width, int *height)
     for (int i = 0; i < pl->count; i++)
     {
         h += item_h(&pl->items[i]);
+        if (pl->items[i].checkable && !pl->items[i].separator)
+            h += 0;
         if (!pl->items[i].separator)
-            best = pg__max(best, pgc_text_w(PGF_MEDIUM, pl->items[i].label) + 60 + (pl->items[i].icon >= 0 ? 28 : 0));
+            best = pg__max(best, pgc_text_w(PGF_MEDIUM, pl->items[i].label) + 84 + (pl->items[i].icon >= 0 ? 28 : 0) +
+                                     (pl->items[i].shortcut ? pgc_text_w(PGF_SMALL, pl->items[i].shortcut) + 24 : 0));
     }
     *width = best;
     *height = h;
@@ -398,6 +405,10 @@ static void plist_draw(struct pg_widget *w, struct pg_canvas *c)
     struct popup_list *pl = (struct popup_list *)w;
     const struct pg_theme *p = pg_theme();
     int x = w->rect.x, ry = w->rect.y + 4, ww = w->rect.w;
+    int lead = 0;
+    for (int i = 0; i < pl->count; i++)
+        if (pl->items[i].checkable)
+            lead = 24;
     for (int i = 0; i < pl->count; i++)
     {
         struct item *it = &pl->items[i];
@@ -413,13 +424,22 @@ static void plist_draw(struct pg_widget *w, struct pg_canvas *c)
         bool sel = pl->checked == i;
         uint32_t fg = !it->enabled ? p->text3 : sel ? p->text
                                                     : p->text2;
-        int tx = x + 14;
+        int tx = x + 14 + lead;
         if (it->icon >= 0)
         {
             pgc_icon(c, it->icon, PG_ICON_S, tx, ry + (h - pgc_icon_px(PG_ICON_S)) / 2, fg);
             tx += 28;
         }
-        pgc_text_fit(c, sel ? PGF_MEDIUM : PGF_BODY, tx, ry + (h - pgc_font_h(PGF_BODY)) / 2, x + ww - 40 - tx,
+        int rlim = x + ww - 40;
+        if (it->shortcut)
+        {
+            int sw = pgc_text_w(PGF_SMALL, it->shortcut);
+            pgc_text(c, PGF_SMALL, x + ww - 16 - sw, ry + (h - pgc_font_h(PGF_SMALL)) / 2, it->shortcut, p->text3);
+            rlim = x + ww - 16 - sw - 16;
+        }
+        if (it->checked)
+            pgc_icon(c, PGI_CHECK, PG_ICON_S, x + 12, ry + (h - pgc_icon_px(PG_ICON_S)) / 2, p->accent);
+        pgc_text_fit(c, sel ? PGF_MEDIUM : PGF_BODY, tx + lead, ry + (h - pgc_font_h(PGF_BODY)) / 2, rlim - tx,
                      it->label, fg);
         if (sel)
             pgc_icon(c, PGI_CHECK, PG_ICON_S, x + ww - 30, ry + (h - pgc_icon_px(PG_ICON_S)) / 2, p->accent);
@@ -477,6 +497,8 @@ static bool plist_event(struct pg_widget *w, const struct pg_event *e)
             plist_step(pl, 1);
         else if (e->key == PG_KEY_UP)
             plist_step(pl, -1);
+        else if ((e->key == PG_KEY_LEFT || e->key == PG_KEY_RIGHT) && pl->nav)
+            pl->nav(pl, e->key == PG_KEY_RIGHT ? 1 : -1);
         else if ((e->key == PG_KEY_ENTER || e->key == PG_KEY_KP_ENTER || e->key == PG_KEY_SPACE) && pl->hot >= 0 && pl->pick)
             pl->pick(pl, pl->hot);
         else
@@ -647,7 +669,10 @@ static bool dd_event(struct pg_widget *w, const struct pg_event *e)
 static void free_items(struct item *items, int count)
 {
     for (int i = 0; items && i < count; i++)
+    {
         free(items[i].label);
+        free(items[i].shortcut);
+    }
     free(items);
 }
 
@@ -729,6 +754,8 @@ struct pg_menu
     struct item *items;
     int count;
     struct pg_window *popup;
+    pg_menu_nav_fn nav;
+    void *nav_data;
 };
 
 struct pg_menu *pg_menu_new(void)
@@ -771,6 +798,53 @@ void pg_menu_set_enabled(struct pg_menu *m, int index, bool enabled)
         m->items[index].enabled = enabled;
 }
 
+void pg_menu_set_shortcut(struct pg_menu *m, int index, const char *text)
+{
+    if (!m || index < 0 || index >= m->count || m->items[index].separator)
+        return;
+    free(m->items[index].shortcut);
+    m->items[index].shortcut = text && *text ? pg__strdup(text) : NULL;
+}
+
+void pg_menu_set_checked(struct pg_menu *m, int index, bool checked)
+{
+    if (!m || index < 0 || index >= m->count || m->items[index].separator)
+        return;
+    m->items[index].checkable = true;
+    m->items[index].checked = checked;
+}
+
+void pg_menu_on_nav(struct pg_menu *m, pg_menu_nav_fn fn, void *data)
+{
+    if (!m)
+        return;
+    m->nav = fn;
+    m->nav_data = data;
+}
+
+void pg_menu_close(struct pg_menu *m)
+{
+    if (m && m->popup)
+        pg_window_destroy(m->popup);
+}
+
+bool pg_menu_is_open(const struct pg_menu *m)
+{
+    return m && m->popup;
+}
+
+static void menu_nav(struct popup_list *pl, int dir)
+{
+    struct pg_menu *m = pl->owner;
+    pg_menu_nav_fn fn = m->nav;
+    void *data = m->nav_data;
+    if (!fn)
+        return;
+    if (m->popup)
+        pg_window_destroy(m->popup);
+    fn(dir, data);
+}
+
 static void menu_done(struct pg_window *pop, void *data)
 {
     (void)pop;
@@ -796,7 +870,10 @@ void pg_menu_popup(struct pg_menu *m, struct pg_window *owner, int x, int y)
         pg_window_destroy(m->popup);
     int wx, wy;
     pg_window_screen_position(owner, &wx, &wy);
-    m->popup = open_popup(owner, wx + x, wy + y, 160, wy + y, m->items, m->count, -1, menu_pick, m, menu_done, NULL);
+    struct popup_list *pl = NULL;
+    m->popup = open_popup(owner, wx + x, wy + y, 160, wy + y, m->items, m->count, -1, menu_pick, m, menu_done, &pl);
+    if (pl)
+        pl->nav = menu_nav;
 }
 
 void pg_menu_destroy(struct pg_menu *m)
